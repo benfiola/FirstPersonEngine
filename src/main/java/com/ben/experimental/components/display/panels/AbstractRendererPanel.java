@@ -34,6 +34,7 @@ public abstract class AbstractRendererPanel extends AbstractPanel {
 
     protected void processDrawEvent(DrawEvent event, Dimension windowSize) {
         toDraw = getGraphicsCalculator().calculate(event.getPlayer(), event.getMap(), windowSize);
+        repaint();
     }
 
     protected abstract AbstractGraphicCalculator getGraphicsCalculator();

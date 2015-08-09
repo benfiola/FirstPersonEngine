@@ -1,7 +1,6 @@
 package com.ben.experimental.components.display.graphicdata;
 
 import com.ben.experimental.utils.Rounder;
-import javafx.geometry.Point2D;
 
 import java.awt.*;
 
@@ -9,13 +8,13 @@ import java.awt.*;
  * Created by Ben on 8/5/2015.
  */
 public class PlayerGraphicData extends AbstractGraphicData {
-    private Point2D center;
+    private Point center;
     private Color color;
     private int radius;
 
-    public PlayerGraphicData(Point2D center) {
+    public PlayerGraphicData(Point center, Color color) {
         this.center = center;
-        this.color = Color.YELLOW;
+        this.color = color;
         this.radius = 5;
     }
 
