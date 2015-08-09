@@ -3,8 +3,7 @@ package com.ben.experimental.components.controller;
 import com.ben.experimental.components.controller.entities.Map;
 import com.ben.experimental.components.controller.entities.Player;
 import com.ben.experimental.components.controller.geometry.SerializablePoint3D;
-import com.ben.experimental.events.DrawEvent;
-import com.ben.experimental.events.InputEvent;
+import com.ben.experimental.events.*;
 import com.ben.experimental.events.dispatcher.EventDispatcher;
 import com.ben.experimental.components.controller.geometry.AbstractGeometry;
 import com.ben.experimental.components.controller.geometry.Box;
@@ -15,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -25,11 +25,10 @@ public class Controller extends AbstractComponent<ControllerEvent> {
 
     private Map map;
     private Player player;
+    private long lastUpdate;
 
     public Controller() {
         super();
-        map = createMap();
-        player = new Player(new SerializablePoint3D(0.0,0.0,0.0), 0.0);
     }
 
     @Override
@@ -53,20 +52,31 @@ public class Controller extends AbstractComponent<ControllerEvent> {
     }
 
     public void handleEvent(ControllerEvent event) {
-        if(event instanceof InputEvent) {
-            handleInputEvent((InputEvent) event);
+        if(event instanceof InitializeEvent) {
+            initialize();
+        }
+        if(event instanceof RequestUpdateEvent) {
+            sendUpdate();
+        }
+        if(event instanceof MovementEvent) {
+            handleMovementEvent((MovementEvent) event);
         }
     }
 
-    private void handleInputEvent(InputEvent event) {
-        //38 - up
-        //37 - left
-        //40 - down
-        //39 - right
-        sendUpdate();
+    public void initialize() {
+        map = createMap();
+        player = new Player(new SerializablePoint3D(0.0,0.0,0.0), 0.0);
+    }
+
+    private void handleMovementEvent(MovementEvent event) {
+        player.handleMovementEvent(event);
     }
 
     private void sendUpdate() {
+        long temp = lastUpdate;
+        lastUpdate = new Date().getTime();
+        long duration = lastUpdate - temp;
+        player.updateLocation(duration);
         EventDispatcher.dispatch(new DrawEvent(player, map));
     }
 }

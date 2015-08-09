@@ -12,19 +12,16 @@ import java.awt.*;
 public class TwoDimensionalRendererPanel extends AbstractRendererPanel {
 
     public TwoDimensionalRendererPanel() {
-        super();
+        super(new TwoDimensionalGraphicCalculator());
         setBackground(Color.BLACK);
         setVisible(true);
     }
 
     @Override
-    protected AbstractGraphicCalculator getGraphicsCalculator() {
-        return new TwoDimensionalGraphicCalculator();
-    }
-
-    @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2d = (Graphics2D)g;
+        g2d.setColor(Color.BLACK);
+        g2d.fillRect(0, 0, getWidth(), getHeight());
         for(AbstractGraphicData data : toDraw) {
             data.paint(g2d);
         }

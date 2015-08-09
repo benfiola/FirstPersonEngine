@@ -15,24 +15,26 @@ import java.util.List;
  */
 public abstract class AbstractGraphicCalculator {
 
-
-
-    protected SerializablePoint3D translatePoint(SerializablePoint3D toTranslate, SerializablePoint3D origin) {
-        return new SerializablePoint3D(toTranslate.getX() - origin.getX(), toTranslate.getY() - origin.getY(), toTranslate.getZ() - origin.getZ());
+    protected SerializablePoint3D translatePoint(SerializablePoint3D toTranslate, SerializablePoint3D vector) {
+        return new SerializablePoint3D(toTranslate.getX() + vector.getX(), toTranslate.getY() + vector.getY(), toTranslate.getZ() + vector.getZ());
     }
 
     protected SerializablePoint3D rotatePoint(SerializablePoint3D toRotate, SerializablePoint3D origin, double direction) {
         double c = Math.cos(direction);
         double s = Math.sin(direction);
 
-        SerializablePoint3D translated = translatePoint(toRotate, origin);
-        double newX = (translated.getX() * c) - (translated.getY() * s);
-        double newY = (translated.getX() * s) + (translated.getY() * c);
+        SerializablePoint3D translated = translatePoint(toRotate, origin.createInverse());
+        double newX = (translated.getX() * c) + (translated.getY() * s);
+        double newY = (translated.getX() * s) - (translated.getY() * c);
         double newZ = translated.getZ();
 
         SerializablePoint3D rotated = new SerializablePoint3D(newX, newY, newZ);
-        return translatePoint(rotated, new SerializablePoint3D(-origin.getX(), -origin.getY(), -origin.getZ()));
+        return translatePoint(rotated, origin);
     }
 
-    public abstract List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize);
+    protected SerializablePoint3D rotatePointAroundOrigin(SerializablePoint3D toRotate, double direction) {
+        return rotatePoint(toRotate, new SerializablePoint3D(0.0, 0.0, 0.0), direction);
+    }
+
+    public abstract List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize, Double zoomFactor);
 }

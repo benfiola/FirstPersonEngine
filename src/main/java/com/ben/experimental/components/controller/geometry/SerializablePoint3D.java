@@ -56,9 +56,11 @@ public class SerializablePoint3D extends DummyPoint3D implements Serializable {
         setField("z", z);
     }
 
-    public static void main(String[] args) {
-        SerializablePoint3D p = new SerializablePoint3D(2.0, 2.0, 2.0);
-        SerializablePoint3D clone = (SerializablePoint3D) ObjectCloner.clone(p);
-        System.out.println("YAY");
+    public SerializablePoint3D createInverse() {
+        return new SerializablePoint3D(-getX(), -getY(), -getZ());
+    }
+
+    public SerializablePoint3D multiplyByScalar(Double scalar) {
+        return new SerializablePoint3D(getX() * scalar, getY() * scalar, getZ() * scalar);
     }
 }

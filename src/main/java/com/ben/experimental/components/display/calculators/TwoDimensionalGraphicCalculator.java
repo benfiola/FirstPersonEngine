@@ -7,7 +7,7 @@ import com.ben.experimental.components.controller.geometry.PointNode;
 import com.ben.experimental.components.controller.geometry.SerializablePoint3D;
 import com.ben.experimental.components.display.graphicdata.AbstractGraphicData;
 import com.ben.experimental.components.display.graphicdata.LineGraphicData;
-import com.ben.experimental.components.display.graphicdata.PlayerGraphicData;
+import com.ben.experimental.components.display.graphicdata.CircleGraphicData;
 import com.ben.experimental.utils.Rounder;
 
 import java.awt.*;
@@ -18,8 +18,9 @@ import java.util.List;
  * Created by Ben on 8/6/2015.
  */
 public class TwoDimensionalGraphicCalculator extends AbstractGraphicCalculator {
+
     @Override
-    public List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize) {
+    public List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize, Double zoomFactor) {
         SerializablePoint3D originalLocation = p.getLocation();
         double directionOffset = p.getDirectionRadians();
 
@@ -28,13 +29,14 @@ public class TwoDimensionalGraphicCalculator extends AbstractGraphicCalculator {
         for (AbstractGeometry g : m.getGeometries()) {
             for (PointNode pointNode : g.getPoints()) {
                 SerializablePoint3D curr = pointNode.getPoint();
-                pointNode.setPoint(rotatePoint(translatePoint(curr, originalLocation), p.getLocation(), directionOffset));
+                pointNode.setPoint(rotatePointAroundOrigin(translatePoint(curr, originalLocation.createInverse()), directionOffset));
             }
         }
 
         Queue<PointNode> queue = new LinkedList<PointNode>();
         Set<PointNode> visited = new HashSet<PointNode>();
         List<AbstractGraphicData> toReturn = new LinkedList<AbstractGraphicData>();
+        SerializablePoint3D centerOfScreen = new SerializablePoint3D(windowSize.getWidth()/2, windowSize.getHeight()/2, 0.0);
         for(AbstractGeometry g : m.getGeometries()) {
             for(PointNode n : g.getPoints()) {
                 queue.offer(n);
@@ -43,18 +45,25 @@ public class TwoDimensionalGraphicCalculator extends AbstractGraphicCalculator {
                     if(!visited.contains(curr)) {
                         visited.add(curr);
                         for (PointNode neighbor : curr.getNeighbors()) {
-                            Point start = new Point(Rounder.round(curr.getPoint().getX() + (windowSize.getWidth() / 2)),
-                                    Rounder.round(curr.getPoint().getY() + (windowSize.getHeight()/2)));
-                            Point end = new Point(Rounder.round(neighbor.getPoint().getX() + (windowSize.getWidth() / 2)),
-                                    Rounder.round(neighbor.getPoint().getY() + (windowSize.getHeight()/2)));
-                            toReturn.add(new LineGraphicData(start, end, Color.BLACK));
+                            SerializablePoint3D startPt3d = translatePoint(curr.getPoint().multiplyByScalar(zoomFactor), centerOfScreen);
+                            SerializablePoint3D endPt3d = translatePoint(neighbor.getPoint().multiplyByScalar(zoomFactor), centerOfScreen);
+                            Point start = new Point(Rounder.round(startPt3d.getX()), Rounder.round(startPt3d.getY()));
+                            Point end = new Point(Rounder.round(endPt3d.getX()), Rounder.round(endPt3d.getY()));
+                            toReturn.add(new LineGraphicData(start, end, Color.RED));
                         }
                     }
                 }
             }
         }
 
-        toReturn.add(new PlayerGraphicData(new Point(Rounder.round(windowSize.getWidth()/2), Rounder.round(windowSize.getHeight()/2)), Color.BLUE));
+        toReturn.add(new CircleGraphicData(new Point(Rounder.round(centerOfScreen.getX()), Rounder.round(centerOfScreen.getY())), zoomFactor, Color.BLUE));
+
+        double losX = Math.cos(p.getDirectionRadians()) * 2;
+        double losY = Math.sin(p.getDirectionRadians()) * 2;
+        SerializablePoint3D los = translatePoint(new SerializablePoint3D(losX, losY, 0.0).multiplyByScalar(zoomFactor), centerOfScreen);
+
+        toReturn.add(new LineGraphicData(new Point(Rounder.round(centerOfScreen.getX()), Rounder.round(centerOfScreen.getY())), new Point(Rounder.round(los.getX()), Rounder.round(los.getY())), Color.WHITE));
+
         return toReturn;
     }
 }
