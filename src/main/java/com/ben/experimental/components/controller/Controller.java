@@ -29,7 +29,7 @@ public class Controller extends AbstractComponent<ControllerEvent> {
     public Controller() {
         super();
         map = createMap();
-        player = new Player(new SerializablePoint3D(0.0,0.0,0.0));
+        player = new Player(new SerializablePoint3D(0.0,0.0,0.0), 0.0);
     }
 
     @Override

@@ -34,6 +34,10 @@ public class PointNode implements Serializable {
         return this.point;
     }
 
+    public void setPoint(SerializablePoint3D point) {
+        this.point = point;
+    }
+
     public List<PointNode> getNeighbors() {
         return this.neighbors;
     }

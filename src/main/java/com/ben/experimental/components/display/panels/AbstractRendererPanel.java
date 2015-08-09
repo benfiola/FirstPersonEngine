@@ -29,11 +29,11 @@ public abstract class AbstractRendererPanel extends AbstractPanel {
 
     public void receiveDrawEvent(DrawEvent event) {
         DrawEvent clone = (DrawEvent) ObjectCloner.clone(event);
-        processDrawEvent(clone);
+        processDrawEvent(clone, this.getSize());
     }
 
-    protected void processDrawEvent(DrawEvent event) {
-        toDraw = getGraphicsCalculator().calculate(event.getPlayer(), event.getMap());
+    protected void processDrawEvent(DrawEvent event, Dimension windowSize) {
+        toDraw = getGraphicsCalculator().calculate(event.getPlayer(), event.getMap(), windowSize);
     }
 
     protected abstract AbstractGraphicCalculator getGraphicsCalculator();

@@ -9,9 +9,11 @@ import java.io.Serializable;
  */
 public class Player implements Serializable {
     private SerializablePoint3D location;
+    private double directionRadians;
 
-    public Player(SerializablePoint3D location) {
+    public Player(SerializablePoint3D location, double directionRadians) {
         this.location = location;
+        this.directionRadians = directionRadians;
     }
 
     public SerializablePoint3D getLocation() {
@@ -20,5 +22,13 @@ public class Player implements Serializable {
 
     public void setLocation(SerializablePoint3D location) {
         this.location = location;
+    }
+
+    public double getDirectionRadians() {
+        return this.directionRadians;
+    }
+
+    public void setDirectionRadians(double directionRadians) {
+        this.directionRadians = directionRadians;
     }
 }
