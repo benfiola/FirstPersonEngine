@@ -6,10 +6,10 @@ import com.ben.experimental.components.controller.geometry.AbstractGeometry;
 import com.ben.experimental.components.controller.geometry.PointNode;
 import com.ben.experimental.components.controller.geometry.SerializablePoint3D;
 import com.ben.experimental.components.display.graphicdata.AbstractGraphicData;
-import com.ben.experimental.components.display.graphicdata.CircleGraphicData;
 import com.ben.experimental.components.display.graphicdata.LineGraphicData;
 import com.ben.experimental.utils.Rounder;
-import javafx.geometry.Point2D;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.awt.*;
 import java.util.*;
@@ -20,15 +20,23 @@ import java.util.Queue;
  * Created by Ben on 8/6/2015.
  */
 public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator {
-    private static final Double MAX_DISTANCE = 10000.0;
-    private static final Double MIN_DISTANCE = 1.0;
-    private static final Double FOV_VERTICAL = (Math.PI/1.5);
-    private static final Double FOV_HORIZONTAL = (Math.PI/1.5);
+    private static final Logger LOG = LogManager.getLogger(ThreeDimensionalGraphicCalculator.class);
+    private static final double FOV = Math.PI/4;
+    private static final double NEAR_DISTANCE = 1.0;
+    private static final double FAR_DISTANCE = 10000.0;
+
     @Override
+    /**
+     * This saved my bacon.
+     * http://stackoverflow.com/questions/724219/how-to-convert-a-3d-point-into-2d-perspective-projection
+     */
     public List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize, Double zoomFactor) {
+        double aspectRatio = windowSize.getWidth() / windowSize.getHeight();
+        ClippingMatrix c = new ClippingMatrix(aspectRatio, FOV, NEAR_DISTANCE, FAR_DISTANCE);
+
+        //convert to camera coordinates
         SerializablePoint3D originalLocation = p.getLocation();
         double directionOffset = p.getDirectionRadians();
-
         p.setDirectionRadians(0.0);
         p.setLocation(new SerializablePoint3D(0.0, 0.0, 0.0));
         for (AbstractGeometry g : m.getGeometries()) {
@@ -48,32 +56,32 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
                 while(!queue.isEmpty()) {
                     PointNode curr = queue.poll();
                     if(!visited.contains(curr)) {
-                        visited.add(curr);
-                        for (PointNode neighbor : curr.getNeighbors()) {
-                            //x is the 'distance' axis
-                            //y is our 'x' axis
-                            //z is our 'y' axis
-                            Double currDistance = curr.getPoint().getX() + 1.0;
-                            Double neighborDistance = neighbor.getPoint().getX() + 1.0;
+                        for(PointNode neighbor : curr.getNeighbors()) {
+                            HomogenousCoordinate currCoord = c.transform(curr.getPoint());
+                            HomogenousCoordinate neighborCoord = c.transform(neighbor.getPoint());
 
-                            SerializablePoint3D currLimits = getLimitsAtDistance(currDistance);
-                            SerializablePoint3D neighborLimits = getLimitsAtDistance(neighborDistance);
-
-                            SerializablePoint3D curr3d = new SerializablePoint3D(curr.getPoint().getY() / currDistance, curr.getPoint().getZ()/currDistance, 0.0);
-                            SerializablePoint3D neighbor3d = new SerializablePoint3D(neighbor.getPoint().getY() / neighborDistance, neighbor.getPoint().getZ()/neighborDistance, 0.0);
-
-                            if(isValid(curr3d) && isValid(neighbor3d)) {
-                                //no need to clip
-                                curr3d = translatePoint(curr3d.multiplyByScalar(zoomFactor), centerOfScreen);
-                                neighbor3d = translatePoint(neighbor3d.multiplyByScalar(zoomFactor), centerOfScreen);
-
-                                Point start = new Point(Rounder.round(curr3d.getX()), Rounder.round(curr3d.getY()));
-                                Point end = new Point(Rounder.round(neighbor3d.getX()), Rounder.round(neighbor3d.getY()));
-                                toReturn.add(new LineGraphicData(start, end, Color.ORANGE));
-                            } else if(isValid(curr3d) || isValid(neighbor3d) ) {
-                                //need to clip
+                            boolean clipCurr = currCoord.withinClippingPlane();
+                            boolean clipNeighbor = neighborCoord.withinClippingPlane();
+                            //clip here
+                            if(!currCoord.withinClippingPlane() && !neighborCoord.withinClippingPlane()) {
+                                continue;
+                            } else if(!currCoord.withinClippingPlane()) {
+                                currCoord = c.clip(currCoord, neighborCoord);
+                            } else if(!neighborCoord.withinClippingPlane()) {
+                                currCoord = c.clip(neighborCoord, currCoord);
                             }
+
+                            //transform to screen coords
+                            SerializablePoint3D currPt = new SerializablePoint3D( ((currCoord.x * windowSize.getWidth())/(2.0 * currCoord.w)), ((currCoord.y * windowSize.getHeight())/(2.0 * currCoord.w)), 0.0);
+                            SerializablePoint3D neighborPt = new SerializablePoint3D( ((neighborCoord.x * windowSize.getWidth())/(2.0 * neighborCoord.w)), ((neighborCoord.y * windowSize.getHeight())/(2.0 * neighborCoord.w)), 0.0);
+                            currPt = translatePoint(currPt, centerOfScreen);
+                            neighborPt = translatePoint(neighborPt, centerOfScreen);
+                            Point start = new Point(Rounder.round(currPt.getX()), Rounder.round(currPt.getY()));
+                            Point end = new Point(Rounder.round(neighborPt.getX()), Rounder.round(neighborPt.getY()));
+                            toReturn.add(new LineGraphicData(start, end, Color.ORANGE));
+                            queue.offer(neighbor);
                         }
+                        visited.add(curr);
                     }
                 }
             }
@@ -81,40 +89,75 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
         return toReturn;
     }
 
-    private boolean isInDistanceBounds(SerializablePoint3D point) {
-        Double distance = point.getX() + 1.0;
-        return distance >= MIN_DISTANCE && distance <= MAX_DISTANCE;
+    private class HomogenousCoordinate {
+
+        private double x;
+        private double y;
+        private double z;
+        private double w;
+        private double unit_w;
+
+        private boolean withinClippingPlane = false;
+
+        public HomogenousCoordinate(double x, double y, double z, double w) {
+            this.x = x/w;
+            this.y = y/w;
+            this.z = z/w;
+            this.unit_w = w/w;
+            this.w = w/w;
+            this.withinClippingPlane = (Math.abs(this.x) <= Math.abs(this.unit_w) &&
+                Math.abs(this.y) <= Math.abs(this.unit_w) &&
+                0.0 <= this.z && this.z <= this.unit_w);
+        }
+
+        public boolean withinClippingPlane() {
+            return this.withinClippingPlane;
+        }
     }
 
-    private boolean isWithinClippingRegion(SerializablePoint3D point) {
-        Double distance = point.getX() + 1.0;
-        SerializablePoint3D limits = getLimitsAtDistance(distance);
-        return (Math.abs(point.getY()) <= Math.abs(limits.getY()) && Math.abs(point.getZ()) <= Math.abs(limits.getZ()));
+    private class ClippingMatrix {
+        private double aspectRatio;
+        private double fov;
+        private double nearDistance;
+        private double farDistance;
+
+        public ClippingMatrix(double aspectRatio, double fov, double nearDistance, double farDistance) {
+            this.aspectRatio = aspectRatio;
+            this.fov = fov;
+            this.nearDistance = nearDistance;
+            this.farDistance = farDistance;
+        }
+
+        public HomogenousCoordinate transform(SerializablePoint3D point) {
+            double x = point.getY() * (fov * aspectRatio);
+            double y = point.getZ() * (fov);
+            double z = (point.getX() * (((farDistance+nearDistance)/(farDistance-nearDistance)))) + ((2*nearDistance*farDistance)/(nearDistance-farDistance));
+            double w = point.getX();
+
+            HomogenousCoordinate toReturn = new HomogenousCoordinate(x, y, z, w);
+            //LOG.info("Point at x:"+point.getX()+",y:"+point.getY()+",z:"+point.getZ()+",clipped:"+toReturn.withinClippingPlane());
+            return toReturn;
+        }
+
+        public HomogenousCoordinate clip(HomogenousCoordinate toClip, HomogenousCoordinate other) {
+
+            if(toClip.x <= -toClip.unit_w) {
+                toClip.x += (toClip.x + toClip.unit_w)/(toClip.x - other.x);
+            } else if(toClip.x >= toClip.unit_w) {
+                toClip.x -= (toClip.x - toClip.unit_w)/(toClip.x - other.x);
+            }
+            if(toClip.y <= -toClip.unit_w) {
+                toClip.y += (toClip.y + toClip.unit_w)/(toClip.y - other.y);
+            } else if(toClip.y >= toClip.w) {
+                toClip.y -= (toClip.y - toClip.unit_w)/(toClip.y - other.y);
+            }
+            if(toClip.z <= 0.0) {
+                toClip.z += (toClip.z + toClip.unit_w)/(toClip.z - other.z);
+            } else if(toClip.z >= toClip.w) {
+                toClip.z -= (toClip.z - toClip.unit_w)/(toClip.z - other.z);
+            }
+            return toClip;
+        }
     }
 
-    private boolean isValid(SerializablePoint3D point) {
-        return isInDistanceBounds(point) && isWithinClippingRegion(point);
-    }
-
-    private SerializablePoint3D getLimitsAtDistance(Double distance) {
-        Double xTan = Math.tan(FOV_HORIZONTAL/2);
-        Double yTan = Math.tan(FOV_VERTICAL/2);
-
-        Double minXDistance = xTan * MIN_DISTANCE;
-        Double minYDistance = yTan * MIN_DISTANCE;
-        Double maxXDistance = xTan * MAX_DISTANCE;
-        Double maxYDistance = yTan * MAX_DISTANCE;
-
-        //unit vectoring this line representing our 'limits'
-        Double vX = maxXDistance - minXDistance;
-        Double vY = maxYDistance - minYDistance;
-        Double dist = Math.sqrt(Math.pow(vX, 2) + Math.pow(vY, 2));
-        vX = vX/dist;
-        vY = vY/dist;
-
-        Double xResult = minXDistance + (vX * distance);
-        Double yResult = minYDistance + (vY * distance);
-        //using this unit vector to do this calculation.
-        return new SerializablePoint3D(0.0, xResult, yResult);
-    }
 }
