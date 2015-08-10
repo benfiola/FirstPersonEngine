@@ -5,6 +5,7 @@ import com.ben.experimental.components.display.panels.TwoDimensionalRendererPane
 import com.ben.experimental.events.ExitEvent;
 import com.ben.experimental.events.dispatcher.EventDispatcher;
 
+import javax.swing.*;
 import java.awt.event.WindowEvent;
 
 /**
@@ -17,13 +18,23 @@ public class EngineRootFrame extends AbstractRootFrame {
     public EngineRootFrame() {
         super("Test");
         setSize(800, 800);
-        currentPanel = new TwoDimensionalRendererPanel();
-        add(currentPanel);
+        setRendererPanel(new TwoDimensionalRendererPanel());
         setVisible(true);
     }
 
     public AbstractRendererPanel getRendererPanel() {
         return this.currentPanel;
+    }
+
+    public void setRendererPanel(AbstractRendererPanel panel) {
+        if(currentPanel != null) {
+            currentPanel.cleanUp();
+            getContentPane().remove(currentPanel);
+        }
+        currentPanel = panel;
+        getContentPane().add(currentPanel);
+        currentPanel.initialize();
+        revalidate();
     }
 
     @Override

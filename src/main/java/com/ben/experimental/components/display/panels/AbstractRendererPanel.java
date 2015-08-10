@@ -54,92 +54,57 @@ public abstract class AbstractRendererPanel extends AbstractPanel {
 
     protected abstract void paintComponent(Graphics g);
 
-    private void handleKeyEvent(KeyEvent e, boolean enabled) {
+    private void handleKeyEvent(KeyEvent e, boolean pressed) {
         switch(e.getKeyCode()) {
             //-
             case 45 :
-                EventDispatcher.dispatch(new ZoomEvent(ZoomEvent.ZoomType.OUT));
+                if(pressed) {
+                    EventDispatcher.dispatch(new ZoomEvent(ZoomEvent.ZoomType.OUT));
+                }
                 break;
             //+
             case 61 :
-                EventDispatcher.dispatch(new ZoomEvent(ZoomEvent.ZoomType.IN));
+                if(pressed) {
+                    EventDispatcher.dispatch(new ZoomEvent(ZoomEvent.ZoomType.IN));
+                }
+                break;
+            //s
+            case 83 :
+                if(pressed) {
+                    EventDispatcher.dispatch(new SwitchRendererEvent());
+                }
                 break;
             //up
             case 38 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.FORWARD, enabled));
+                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.FORWARD, pressed));
                 break;
             //down
             case 40 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.BACKWARD, enabled));
+                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.BACKWARD, pressed));
                 break;
             //left
             case 37 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.LEFT, enabled));
+                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.LEFT, pressed));
                 break;
             //right
             case 39 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.RIGHT, enabled));
+                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.RIGHT, pressed));
                 break;
             default :
-                LOG.info(e.getKeyCode());
+                if(pressed) {
+                    LOG.info(e.getKeyCode());
+                }
                 break;
         }
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
-        switch(e.getKeyCode()) {
-            //-
-            case 45 :
-                EventDispatcher.dispatch(new ZoomEvent(ZoomEvent.ZoomType.OUT));
-                break;
-            //+
-            case 61 :
-                EventDispatcher.dispatch(new ZoomEvent(ZoomEvent.ZoomType.IN));
-                break;
-            //up
-            case 38 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.FORWARD, true));
-                break;
-            //down
-            case 40 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.BACKWARD, true));
-                break;
-            //left
-            case 37 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.LEFT, true));
-                break;
-            //right
-            case 39 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.RIGHT, true));
-                break;
-            default :
-                LOG.info(e.getKeyCode());
-                break;
-        }
+        handleKeyEvent(e, true);
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        switch(e.getKeyCode()) {
-            //up
-            case 38 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.FORWARD, false));
-                break;
-            //down
-            case 40 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.BACKWARD, false));
-                break;
-            //left
-            case 37 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.LEFT, false));
-                break;
-            //right
-            case 39 :
-                EventDispatcher.dispatch(new MovementEvent(MovementEvent.MovementType.RIGHT, false));
-                break;
-            default :
-                break;
-        }
+       handleKeyEvent(e, false);
     }
 }

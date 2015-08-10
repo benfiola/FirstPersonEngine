@@ -15,8 +15,19 @@ public abstract class AbstractPanel extends JPanel implements KeyListener {
 
     public AbstractPanel() {
         super(true);
+    }
+
+    public void initialize() {
         setFocusable(true);
+        requestFocusInWindow();
         addKeyListener(this);
+        setVisible(true);
+    }
+
+    public void cleanUp() {
+        setVisible(false);
+        setFocusable(false);
+        removeKeyListener(this);
     }
 
     public void keyTyped(KeyEvent e) {
