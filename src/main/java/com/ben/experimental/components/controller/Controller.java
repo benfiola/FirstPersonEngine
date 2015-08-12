@@ -2,11 +2,9 @@ package com.ben.experimental.components.controller;
 
 import com.ben.experimental.components.controller.entities.Map;
 import com.ben.experimental.components.controller.entities.Player;
-import com.ben.experimental.components.controller.geometry.SerializablePoint3D;
+import com.ben.experimental.components.controller.geometry.*;
 import com.ben.experimental.events.*;
 import com.ben.experimental.events.dispatcher.EventDispatcher;
-import com.ben.experimental.components.controller.geometry.AbstractGeometry;
-import com.ben.experimental.components.controller.geometry.Box;
 import com.ben.experimental.events.interfaces.ControllerEvent;
 import com.ben.experimental.events.interfaces.ComponentEvent;
 import com.ben.experimental.main.AbstractComponent;
@@ -44,10 +42,17 @@ public class Controller extends AbstractComponent<ControllerEvent> {
         return this.player;
     }
 
-    public static final Map createMap() {
+    public static final Map createBox() {
         List<AbstractGeometry> geometries = new ArrayList<AbstractGeometry>();
-        Box b1 = new Box(new SerializablePoint3D(0.0,0.0,0.0),10.0, 10.0, 10.0);
+        Box b1 = new Box(new SerializablePoint3D(-5.0,-5.0,-5.0),10.0, 10.0, 10.0);
         geometries.add(b1);
+        return new Map(geometries);
+    }
+
+    public static final Map createLines() {
+        List<AbstractGeometry> geometries = new ArrayList<AbstractGeometry>();
+        Line l1 = new Line(new SerializablePoint3D(-2.0, -2.0, -2.0), new SerializablePoint3D(6.0, 6.0, 6.0));
+        geometries.add(l1);
         return new Map(geometries);
     }
 
@@ -64,7 +69,7 @@ public class Controller extends AbstractComponent<ControllerEvent> {
     }
 
     public void initialize() {
-        map = createMap();
+        map = createLines();
         player = new Player(new SerializablePoint3D(0.0,0.0,0.0), 0.0);
     }
 

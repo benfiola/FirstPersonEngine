@@ -131,7 +131,7 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
         public HomogenousCoordinate transform(SerializablePoint3D point) {
             double x = point.getY() * (fov * aspectRatio);
             double y = point.getZ() * (fov);
-            double z = (point.getX() * (((farDistance+nearDistance)/(farDistance-nearDistance)))) + ((2*nearDistance*farDistance)/(nearDistance-farDistance));
+            double z = ((point.getX() * (((farDistance+nearDistance)/(farDistance-nearDistance)))) + ((2*nearDistance*farDistance)/(nearDistance-farDistance)));
             double w = point.getX();
 
             HomogenousCoordinate toReturn = new HomogenousCoordinate(x, y, z, w);
@@ -142,17 +142,17 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
         public HomogenousCoordinate clip(HomogenousCoordinate toClip, HomogenousCoordinate other) {
 
             if(toClip.x <= -toClip.unit_w) {
-                toClip.x += (toClip.x + toClip.unit_w)/(toClip.x - other.x);
+                toClip.x += (toClip.x + toClip.unit_w)/(toClip.x + other.x);
             } else if(toClip.x >= toClip.unit_w) {
                 toClip.x -= (toClip.x - toClip.unit_w)/(toClip.x - other.x);
             }
             if(toClip.y <= -toClip.unit_w) {
-                toClip.y += (toClip.y + toClip.unit_w)/(toClip.y - other.y);
+                toClip.y += (toClip.y + toClip.unit_w)/(toClip.y + other.y);
             } else if(toClip.y >= toClip.w) {
                 toClip.y -= (toClip.y - toClip.unit_w)/(toClip.y - other.y);
             }
             if(toClip.z <= 0.0) {
-                toClip.z += (toClip.z + toClip.unit_w)/(toClip.z - other.z);
+                toClip.z += (toClip.z + toClip.unit_w)/(toClip.z + other.z);
             } else if(toClip.z >= toClip.w) {
                 toClip.z -= (toClip.z - toClip.unit_w)/(toClip.z - other.z);
             }
