@@ -44,14 +44,14 @@ public class Controller extends AbstractComponent<ControllerEvent> {
 
     public static final Map createBox() {
         List<AbstractGeometry> geometries = new ArrayList<AbstractGeometry>();
-        Box b1 = new Box(new SerializablePoint3D(-5.0,-5.0,-5.0),10.0, 10.0, 10.0);
+        Box b1 = new Box(new SerializablePoint3D(-2.0,-2.0,-2.0),2.0, 2.0, 2.0);
         geometries.add(b1);
         return new Map(geometries);
     }
 
     public static final Map createLines() {
         List<AbstractGeometry> geometries = new ArrayList<AbstractGeometry>();
-        Line l1 = new Line(new SerializablePoint3D(-2.0, -2.0, -2.0), new SerializablePoint3D(6.0, 6.0, 6.0));
+        Line l1 = new Line(new SerializablePoint3D(0.0, 0.0, 0.0), new SerializablePoint3D(10000.0, 3.0, 0.0));
         geometries.add(l1);
         return new Map(geometries);
     }

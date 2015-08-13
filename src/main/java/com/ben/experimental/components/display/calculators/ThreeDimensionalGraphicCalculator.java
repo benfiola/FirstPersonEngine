@@ -21,7 +21,7 @@ import java.util.Queue;
  */
 public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator {
     private static final Logger LOG = LogManager.getLogger(ThreeDimensionalGraphicCalculator.class);
-    private static final double FOV = Math.PI/4;
+    private static final double FOV = Math.PI/2;
     private static final double NEAR_DISTANCE = 1.0;
     private static final double FAR_DISTANCE = 10000.0;
 
@@ -103,11 +103,10 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
             this.x = x/w;
             this.y = y/w;
             this.z = z/w;
-            this.unit_w = w/w;
-            this.w = w/w;
-            this.withinClippingPlane = (Math.abs(this.x) <= Math.abs(this.unit_w) &&
-                Math.abs(this.y) <= Math.abs(this.unit_w) &&
-                0.0 <= this.z && this.z <= this.unit_w);
+            this.w = w;
+            this.withinClippingPlane = (Math.abs(this.x) <= Math.abs(1.0) &&
+                Math.abs(this.y) <= Math.abs(1.0) &&
+                0.0 <= this.z && this.z < 1.0);
         }
 
         public boolean withinClippingPlane() {
@@ -129,9 +128,9 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
         }
 
         public HomogenousCoordinate transform(SerializablePoint3D point) {
-            double x = point.getY() * (fov * aspectRatio);
-            double y = point.getZ() * (fov);
-            double z = ((point.getX() * (((farDistance+nearDistance)/(farDistance-nearDistance)))) + ((2*nearDistance*farDistance)/(nearDistance-farDistance)));
+            double x = point.getY() / (Math.tan(fov/2) * aspectRatio);
+            double y = point.getZ() / (Math.tan(fov/2));
+            double z = (point.getX() * ((-nearDistance -farDistance)/(nearDistance - farDistance)) + ((2.0 * farDistance * nearDistance)/(nearDistance - farDistance)));
             double w = point.getX();
 
             HomogenousCoordinate toReturn = new HomogenousCoordinate(x, y, z, w);
@@ -140,21 +139,38 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
         }
 
         public HomogenousCoordinate clip(HomogenousCoordinate toClip, HomogenousCoordinate other) {
-
-            if(toClip.x <= -toClip.unit_w) {
-                toClip.x += (toClip.x + toClip.unit_w)/(toClip.x + other.x);
-            } else if(toClip.x >= toClip.unit_w) {
-                toClip.x -= (toClip.x - toClip.unit_w)/(toClip.x - other.x);
+            if(toClip.x < -1.0)  {
+                double slopeY = (other.y - toClip.y)/(other.x - toClip.x);
+                double slopeZ = (other.z - toClip.z)/(other.x - toClip.x);
+                double distance = -1.0 - toClip.x;
+                toClip = new HomogenousCoordinate(-1.0, toClip.y + (slopeY * distance), toClip.z + (slopeZ * distance), toClip.w);
+            } else if(toClip.x > 1.0) {
+                double slopeY = (other.y - toClip.y)/(other.x - toClip.x);
+                double slopeZ = (other.z - toClip.z)/(other.x - toClip.x);
+                double distance = toClip.x - 1.0;
+                toClip = new HomogenousCoordinate(1.0, toClip.y - (slopeY * distance), toClip.z - (slopeZ * distance), toClip.w);
             }
-            if(toClip.y <= -toClip.unit_w) {
-                toClip.y += (toClip.y + toClip.unit_w)/(toClip.y + other.y);
-            } else if(toClip.y >= toClip.w) {
-                toClip.y -= (toClip.y - toClip.unit_w)/(toClip.y - other.y);
+            if(toClip.y < -1.0) {
+                double slopeX = (other.x - toClip.x)/(other.y - toClip.y);
+                double slopeZ = (other.z - toClip.z)/(other.y - toClip.y);
+                double distance = -1.0 - toClip.y;
+                toClip = new HomogenousCoordinate(toClip.x + (slopeX * distance), -1.0, toClip.z + (slopeZ * distance), toClip.w);
+            } else if(toClip.y > 1.0) {
+                double slopeX = (other.x - toClip.x)/(other.y - toClip.y);
+                double slopeZ = (other.z - toClip.z)/(other.y - toClip.y);
+                double distance = toClip.y - 1.0;
+                toClip = new HomogenousCoordinate(toClip.x - (slopeX * distance), 1.0, toClip.z - (slopeZ * distance), toClip.w);
             }
             if(toClip.z <= 0.0) {
-                toClip.z += (toClip.z + toClip.unit_w)/(toClip.z + other.z);
-            } else if(toClip.z >= toClip.w) {
-                toClip.z -= (toClip.z - toClip.unit_w)/(toClip.z - other.z);
+                double slopeX = (other.x - toClip.x)/(other.z - toClip.z);
+                double slopeY = (other.y - toClip.y)/(other.z - toClip.z);
+                double distance = 0.0 - toClip.z;
+                toClip = new HomogenousCoordinate(toClip.x - (slopeX * distance), toClip.y - (slopeY * distance) , 0.0, toClip.w);
+            } else if (toClip.z > 1.0) {
+                double slopeX = (other.x - toClip.x)/(other.z - toClip.z);
+                double slopeY = (other.y - toClip.y)/(other.z - toClip.z);
+                double distance = toClip.z - 1.0;
+                toClip = new HomogenousCoordinate(toClip.x + (slopeX * distance), toClip.y + (slopeY * distance) , 1.0, toClip.w);
             }
             return toClip;
         }
