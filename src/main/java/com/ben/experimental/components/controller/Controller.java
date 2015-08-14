@@ -51,7 +51,8 @@ public class Controller extends AbstractComponent<ControllerEvent> {
 
     public static final Map createLines() {
         List<AbstractGeometry> geometries = new ArrayList<AbstractGeometry>();
-        Line l1 = new Line(new SerializablePoint3D(0.0, 0.0, 0.0), new SerializablePoint3D(10000.0, 3.0, 0.0));
+        Line l1 = new Line(new SerializablePoint3D(1.0, 0.0, 0.0), new SerializablePoint3D(10000.0, 0.0, 0.0));
+
         geometries.add(l1);
         return new Map(geometries);
     }
