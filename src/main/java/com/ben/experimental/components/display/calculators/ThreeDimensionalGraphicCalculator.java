@@ -31,7 +31,6 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
      * http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrix-GPU-rendering-pipeline-clipping
      */
     public List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize, Double zoomFactor) {
-        LOG.info("new calculation");
         double aspectRatio = windowSize.getWidth() / windowSize.getHeight();
         ClippingMatrix c = new ClippingMatrix(aspectRatio, FOV, NEAR_DISTANCE, FAR_DISTANCE);
 
@@ -128,67 +127,53 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
             if(this.w <= 0.0 ) {
                 return null;
             }
+            double newCoordX = 0.0;
+            double newCoordY = 0.0;
+            double newCoordZ = 0.0;
+            double lineLength = Math.sqrt(Math.pow(other.x - this.x,2) + Math.pow(other.y-this.y,2) + Math.pow(other.z - this.z, 2));
+            HomogenousCoordinate toClip = this;
 
-            double distance;
-            double slopeX;
-            double slopeY;
-            double slopeZ;
-
-            if(this.x < -this.w || this.x > this.w && this.x != other.x) {
-                double newX;
+            int numClipped = 0;
+            if(this.x < -this.w || this.x > this.w) {
+                numClipped++;
+                newCoordX = this.w;
                 if(this.x < -this.w) {
-                    distance = Math.abs(this.x-this.w);
-                    newX = -this.w;
-                } else {
-                    distance = this.w - this.x;
-                    newX = this.w;
+                    newCoordX = -newCoordX;
                 }
-                slopeY = (other.y - this.y)/(other.x - this.x);
-                slopeZ = (other.z - this.z)/(other.x - this.x);
-                this.x = newX;
-                this.y = this.y + (distance * slopeY);
-                this.z = this.z + (distance * slopeZ);
+                double offset = newCoordX - this.x;
+                double factor = offset/lineLength;
+                newCoordY = this.y+(factor*(other.y-this.y));
+                newCoordZ = this.z+(factor*(other.z-this.z));
+                toClip = new HomogenousCoordinate(newCoordX, newCoordY, newCoordZ, this.w);
             }
 
             if(this.y < -this.w || this.y > this.w) {
-                double newY;
-                if (this.y < -this.w) {
-                    distance = Math.abs(this.y - this.w);
-                    newY = -this.w;
-                } else {
-                    distance = this.w - this.x;
-                    newY = this.w;
+                numClipped++;
+                newCoordY = this.w;
+                if(this.x < -this.w) {
+                    newCoordY = -newCoordY;
                 }
-                if(other.y != this.y) {
-                    slopeX = (other.x - this.x)/(other.y - this.y);
-                    slopeZ = (other.z - this.z)/(other.y - this.y);
-                } else {
-                    slopeX = 0.0;
-                    slopeZ = 0.0;
-                }
-
-                this.y = newY;
-                this.x = this.x + (distance * slopeX);
-                this.z = this.z + (distance * slopeZ);
+                double offset = newCoordY - this.y;
+                double factor = offset/lineLength;
+                newCoordX = this.x+(factor*(other.x-this.x));
+                newCoordZ = this.z+(factor*(other.z-this.z));
+                toClip = new HomogenousCoordinate(newCoordX, newCoordY, newCoordZ, this.w);
             }
 
-            if(this.z < -this.w || this.z > this.w && this.z != other.z) {
-                double newZ;
-                if(this.z < -this.w) {
-                    distance = Math.abs(this.z - this.w);
-                    newZ = -this.w;
-                } else {
-                    distance = this.w - this.z;
-                    newZ = this.w;
+            if(this.z < -this.w || this.z > this.w) {
+                numClipped ++;
+                newCoordZ = this.w;
+                if(this.x < -this.w) {
+                    newCoordZ = -newCoordZ;
                 }
-                slopeX = (other.x - this.x)/(other.z - this.z);
-                slopeY = (other.y - this.y)/(other.z - this.z);
-                this.z = newZ;
-                this.x = this.x + (distance * slopeX);
-                this.y = this.y + (distance * slopeY);
+                double offset = newCoordZ - this.z;
+                double factor = offset/lineLength;
+                newCoordX = this.x+(factor*(other.x-this.x));
+                newCoordY = this.y+(factor*(other.y-this.y));
+                toClip = new HomogenousCoordinate(newCoordX, newCoordY, newCoordZ, this.w);
             }
 
-            return this;
+            return toClip;
         }
 
         public HomogenousCoordinate perspectiveDivide() {
