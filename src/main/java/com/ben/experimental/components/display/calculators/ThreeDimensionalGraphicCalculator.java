@@ -28,7 +28,7 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
     @Override
     /**
      * This saved my bacon.
-     * http://stackoverflow.com/questions/724219/how-to-convert-a-3d-point-into-2d-perspective-projection
+     * http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrix-GPU-rendering-pipeline-clipping
      */
     public List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize, Double zoomFactor) {
         double aspectRatio = windowSize.getWidth() / windowSize.getHeight();
@@ -54,34 +54,27 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
             for(PointNode n : g.getPoints()) {
                 queue.offer(n);
                 while(!queue.isEmpty()) {
-                    PointNode curr = queue.poll();
-                    if(!visited.contains(curr)) {
-                        for(PointNode neighbor : curr.getNeighbors()) {
-                            HomogenousCoordinate currCoord = c.transform(curr.getPoint());
-                            HomogenousCoordinate neighborCoord = c.transform(neighbor.getPoint());
-
-                            boolean clipCurr = currCoord.withinClippingPlane();
-                            boolean clipNeighbor = neighborCoord.withinClippingPlane();
-                            //clip here
-                            if(!currCoord.withinClippingPlane() && !neighborCoord.withinClippingPlane()) {
-                                continue;
-                            } else if(!currCoord.withinClippingPlane()) {
-                                currCoord = c.clip(currCoord, neighborCoord);
-                            } else if(!neighborCoord.withinClippingPlane()) {
-                                currCoord = c.clip(neighborCoord, currCoord);
+                    PointNode currNode = queue.poll();
+                    if(!visited.contains(currNode)) {
+                        HomogenousCoordinate curr = new HomogenousCoordinate(currNode.getPoint()).axisCorrection().perspectiveProjection(windowSize.getWidth()/windowSize.getHeight(), FOV, NEAR_DISTANCE, FAR_DISTANCE);
+                        for(PointNode neighborNode : currNode.getNeighbors()) {
+                            if(!visited.contains(neighborNode)) {
+                                HomogenousCoordinate neighbor = new HomogenousCoordinate(neighborNode.getPoint()).axisCorrection().perspectiveProjection(windowSize.getWidth() / windowSize.getHeight(), FOV, NEAR_DISTANCE, FAR_DISTANCE);
+                                curr = curr.clip(neighbor);
+                                if (curr != null) {
+                                    neighbor = neighbor.clip(curr);
+                                    if (neighbor != null) {
+                                        SerializablePoint3D currPt = curr.perspectiveDivide().toScreenCoordinates(windowSize);
+                                        SerializablePoint3D neighborPt = neighbor.perspectiveDivide().toScreenCoordinates(windowSize);
+                                        toReturn.add(new LineGraphicData(new Point(Rounder.round(currPt.getX()), Rounder.round(currPt.getY())), new Point(Rounder.round(neighborPt.getX()), Rounder.round(neighborPt.getY())), Color.ORANGE));
+                                        queue.offer(neighborNode);
+                                    }
+                                } else {
+                                    break;
+                                }
                             }
-
-                            //transform to screen coords
-                            SerializablePoint3D currPt = new SerializablePoint3D( ((currCoord.x * windowSize.getWidth())/(2.0 * currCoord.w)), ((currCoord.y * windowSize.getHeight())/(2.0 * currCoord.w)), 0.0);
-                            SerializablePoint3D neighborPt = new SerializablePoint3D( ((neighborCoord.x * windowSize.getWidth())/(2.0 * neighborCoord.w)), ((neighborCoord.y * windowSize.getHeight())/(2.0 * neighborCoord.w)), 0.0);
-                            currPt = translatePoint(currPt, centerOfScreen);
-                            neighborPt = translatePoint(neighborPt, centerOfScreen);
-                            Point start = new Point(Rounder.round(currPt.getX()), Rounder.round(currPt.getY()));
-                            Point end = new Point(Rounder.round(neighborPt.getX()), Rounder.round(neighborPt.getY()));
-                            toReturn.add(new LineGraphicData(start, end, Color.ORANGE));
-                            queue.offer(neighbor);
                         }
-                        visited.add(curr);
+                        visited.add(currNode);
                     }
                 }
             }
@@ -95,22 +88,112 @@ public class ThreeDimensionalGraphicCalculator extends AbstractGraphicCalculator
         private double y;
         private double z;
         private double w;
-        private double unit_w;
-
-        private boolean withinClippingPlane = false;
 
         public HomogenousCoordinate(double x, double y, double z, double w) {
-            this.x = x/w;
-            this.y = y/w;
-            this.z = z/w;
+            this.x = x;
+            this.y = y;
+            this.z = z;
             this.w = w;
-            this.withinClippingPlane = (Math.abs(this.x) <= Math.abs(1.0) &&
-                Math.abs(this.y) <= Math.abs(1.0) &&
-                0.0 <= this.z && this.z < 1.0);
         }
 
-        public boolean withinClippingPlane() {
-            return this.withinClippingPlane;
+        public HomogenousCoordinate(SerializablePoint3D point3D) {
+            this.x = point3D.getX();
+            this.y = point3D.getY();
+            this.z = point3D.getZ();
+            this.w = 1.0;
+        }
+
+        public HomogenousCoordinate axisCorrection() {
+            double temp = this.x;
+            this.x = this.y;
+            this.y = this.z;
+            this.z = temp;
+            return this;
+        }
+
+        public HomogenousCoordinate perspectiveProjection(double aspectRatio, double fov, double nearDistance, double farDistance) {
+            this.x = this.x/(Math.tan(fov/2) * aspectRatio);
+            this.y = this.y/(Math.tan(fov/2));
+            this.w = this.z;
+            this.z = ((this.z * farDistance)/(farDistance-nearDistance)) + ((farDistance*nearDistance)/(farDistance-nearDistance));
+
+            return this;
+        }
+
+
+        public HomogenousCoordinate clip(HomogenousCoordinate other) {
+            if(this.w <= 0.0) {
+                return null;
+            }
+
+            double distance;
+            double slopeX;
+            double slopeY;
+            double slopeZ;
+
+            if(this.x < -this.w || this.x > this.w) {
+                double newX;
+                if(this.x < -this.w) {
+                    distance = Math.abs(this.x-this.w);
+                    newX = -this.w;
+                } else {
+                    distance = this.w - this.x;
+                    newX = this.w;
+                }
+                slopeY = (other.y - this.y)/(other.x - this.x);
+                slopeZ = (other.z - this.z)/(other.x - this.x);
+                this.x = newX;
+                this.y = this.y + (distance * slopeY);
+                this.z = this.z + (distance * slopeZ);
+            }
+
+            if(this.y < -this.w || this.y > this.w) {
+                double newY;
+                if (this.y < -this.w) {
+                    distance = Math.abs(this.y - this.w);
+                    newY = -this.w;
+                } else {
+                    distance = this.w - this.x;
+                    newY = this.w;
+                }
+                slopeX = (other.x - this.x)/(other.y - this.y);
+                slopeZ = (other.z - this.z)/(other.y - this.y);
+                this.y = newY;
+                this.x = this.x + (distance * slopeX);
+                this.z = this.z + (distance * slopeZ);
+            }
+
+            if(this.z < -this.w || this.z > this.w) {
+                double newZ;
+                if(this.z < -this.w) {
+                    distance = Math.abs(this.z - this.w);
+                    newZ = -this.w;
+                } else {
+                    distance = this.w - this.z;
+                    newZ = this.w;
+                }
+                slopeX = (other.x - this.x)/(other.z - this.z);
+                slopeY = (other.y - this.y)/(other.z - this.z);
+                this.z = newZ;
+                this.x = this.x + (distance * slopeX);
+                this.y = this.y + (distance * slopeY);
+            }
+
+            return this;
+        }
+
+        public HomogenousCoordinate perspectiveDivide() {
+            if(this.w != 1.0) {
+                this.x = this.x / this.w;
+                this.y = this.y / this.w;
+                this.z = this.z / this.w;
+            }
+            return this;
+        }
+
+        public SerializablePoint3D toScreenCoordinates(Dimension windowSize){
+            return new SerializablePoint3D((x+1)*.5*(windowSize.getWidth()), ((y+1))*.5*windowSize.getHeight(), 0.0);
+
         }
     }
 
