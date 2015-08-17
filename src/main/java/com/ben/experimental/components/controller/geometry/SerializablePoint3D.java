@@ -1,5 +1,6 @@
 package com.ben.experimental.components.controller.geometry;
 
+import com.ben.experimental.components.display.graphicdata.HomogenousCoordinate;
 import com.ben.experimental.utils.ObjectCloner;
 import javafx.geometry.Point3D;
 
@@ -56,11 +57,8 @@ public class SerializablePoint3D extends DummyPoint3D implements Serializable {
         setField("z", z);
     }
 
-    public SerializablePoint3D createInverse() {
-        return new SerializablePoint3D(-getX(), -getY(), -getZ());
+    public HomogenousCoordinate toHomogenousCoordinate() {
+        return new HomogenousCoordinate(getX(), getY(), getZ(), 1.0);
     }
 
-    public SerializablePoint3D multiplyByScalar(Double scalar) {
-        return new SerializablePoint3D(getX() * scalar, getY() * scalar, getZ() * scalar);
-    }
 }

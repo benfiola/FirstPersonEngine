@@ -18,16 +18,13 @@ import java.util.List;
  */
 public abstract class AbstractRendererPanel extends AbstractPanel {
     private Logger LOG = LogManager.getLogger(this.getClass());
-    private static final Double ZOOM_FACTOR_MODIFIER = 0.5;
 
     protected List<AbstractGraphicData> toDraw;
     protected AbstractGraphicCalculator calculator;
-    protected Double zoomFactor;
 
     public AbstractRendererPanel(AbstractGraphicCalculator calculator) {
         super();
         this.calculator = calculator;
-        this.zoomFactor = 10.0;
         toDraw = new LinkedList<AbstractGraphicData>();
     }
 
@@ -37,18 +34,18 @@ public abstract class AbstractRendererPanel extends AbstractPanel {
     }
 
     public void receiveZoomEvent(ZoomEvent event) {
-        if(event.getZoomType() == ZoomEvent.ZoomType.IN) {
-            zoomFactor = zoomFactor + ZOOM_FACTOR_MODIFIER;
-        } else if(event.getZoomType() == ZoomEvent.ZoomType.OUT) {
-            if(zoomFactor > ZOOM_FACTOR_MODIFIER) {
-                zoomFactor = zoomFactor - ZOOM_FACTOR_MODIFIER;
-            }
-        }
-       EventDispatcher.dispatch(new RequestUpdateEvent());
+//        if(event.getZoomType() == ZoomEvent.ZoomType.IN) {
+//            zoomFactor = zoomFactor + ZOOM_FACTOR_MODIFIER;
+//        } else if(event.getZoomType() == ZoomEvent.ZoomType.OUT) {
+//            if(zoomFactor > ZOOM_FACTOR_MODIFIER) {
+//                zoomFactor = zoomFactor - ZOOM_FACTOR_MODIFIER;
+//            }
+//        }
+//       EventDispatcher.dispatch(new RequestUpdateEvent());
     }
 
     protected void processDrawEvent(DrawEvent event, Dimension windowSize) {
-        toDraw = calculator.calculate(event.getPlayer(), event.getMap(), windowSize, zoomFactor);
+        toDraw = calculator.calculate(event.getPlayer(), event.getMap(), windowSize);
         repaint();
     }
 

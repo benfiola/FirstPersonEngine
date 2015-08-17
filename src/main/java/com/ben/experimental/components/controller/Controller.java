@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -51,9 +52,14 @@ public class Controller extends AbstractComponent<ControllerEvent> {
 
     public static final Map createLines() {
         List<AbstractGeometry> geometries = new ArrayList<AbstractGeometry>();
-        Line l1 = new Line(new SerializablePoint3D(1.0, 0.0, 0.0), new SerializablePoint3D(10000.0, 0.0, 0.0));
+        Line[] lines = new Line[]{
+                new Line(new SerializablePoint3D(0.0, 1.0, -1.0), new SerializablePoint3D(0.0, -1.0, -1.0)),
+                new Line(new SerializablePoint3D(0.0, 1.0, 1.0), new SerializablePoint3D(0.0, 1.0, -1.0)),
+                new Line(new SerializablePoint3D(0.0, -1.0, 1.0), new SerializablePoint3D(0.0, 1.0, 1.0)),
+                new Line(new SerializablePoint3D(0.0, -1.0, -1.0), new SerializablePoint3D(0.0, -1.0, 1.0))
+        };
 
-        geometries.add(l1);
+        geometries.addAll(Arrays.asList(lines));
         return new Map(geometries);
     }
 
@@ -70,7 +76,7 @@ public class Controller extends AbstractComponent<ControllerEvent> {
     }
 
     public void initialize() {
-        map = createBox();
+        map = createLines();
         player = new Player(new SerializablePoint3D(0.0,0.0,0.0), 0.0);
     }
 

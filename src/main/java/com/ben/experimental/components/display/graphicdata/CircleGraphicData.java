@@ -10,13 +10,12 @@ import java.awt.*;
 public class CircleGraphicData extends AbstractGraphicData {
     private Point center;
     private Color color;
-    private double diameter;
+    private Double diameter;
 
-    public CircleGraphicData(Point center, Double zoomFactor, Color color) {
-        this.diameter = 1.0 * zoomFactor;
+    public CircleGraphicData(Point center, double diameter, Color color) {
         this.center = new Point(Rounder.round(center.getX() - diameter/2), Rounder.round(center.getY() - diameter/2));
         this.color = color;
-
+        this.diameter = diameter;
     }
 
     @Override

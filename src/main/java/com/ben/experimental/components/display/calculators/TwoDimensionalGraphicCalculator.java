@@ -20,23 +20,10 @@ import java.util.List;
 public class TwoDimensionalGraphicCalculator extends AbstractGraphicCalculator {
 
     @Override
-    public List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize, Double zoomFactor) {
-        SerializablePoint3D originalLocation = p.getLocation();
-        double directionOffset = p.getDirectionRadians();
-
-        p.setDirectionRadians(0.0);
-        p.setLocation(new SerializablePoint3D(0.0, 0.0, 0.0));
-        for (AbstractGeometry g : m.getGeometries()) {
-            for (PointNode pointNode : g.getPoints()) {
-                SerializablePoint3D curr = pointNode.getPoint();
-                pointNode.setPoint(rotatePointAroundOrigin(translatePoint(curr, originalLocation.createInverse()), directionOffset));
-            }
-        }
-
+    public List<AbstractGraphicData> calculate(Player p, Map m, Dimension windowSize) {
         Queue<PointNode> queue = new LinkedList<PointNode>();
         Set<PointNode> visited = new HashSet<PointNode>();
         List<AbstractGraphicData> toReturn = new LinkedList<AbstractGraphicData>();
-        SerializablePoint3D centerOfScreen = new SerializablePoint3D(windowSize.getWidth()/2, windowSize.getHeight()/2, 0.0);
         for(AbstractGeometry g : m.getGeometries()) {
             for(PointNode n : g.getPoints()) {
                 queue.offer(n);
@@ -45,11 +32,9 @@ public class TwoDimensionalGraphicCalculator extends AbstractGraphicCalculator {
                     if(!visited.contains(curr)) {
                         visited.add(curr);
                         for (PointNode neighbor : curr.getNeighbors()) {
-                            SerializablePoint3D startPt3d = translatePoint(curr.getPoint().multiplyByScalar(zoomFactor), centerOfScreen);
-                            SerializablePoint3D endPt3d = translatePoint(neighbor.getPoint().multiplyByScalar(zoomFactor), centerOfScreen);
-                            Point start = new Point(Rounder.round(startPt3d.getX()), Rounder.round(startPt3d.getY()));
-                            Point end = new Point(Rounder.round(endPt3d.getX()), Rounder.round(endPt3d.getY()));
-                            toReturn.add(new LineGraphicData(start, end, Color.RED));
+                            Point currPt = curr.getPoint().toHomogenousCoordinate().toCameraSpace(p).normalize(windowSize.getWidth() / 20, windowSize.getHeight() / 20, 1.0).toScreenCoordinates(windowSize);
+                            Point neighborPt = neighbor.getPoint().toHomogenousCoordinate().toCameraSpace(p).normalize(windowSize.getWidth() / 20, windowSize.getHeight() / 20, 1.0).toScreenCoordinates(windowSize);
+                            toReturn.add(new LineGraphicData(currPt, neighborPt, Color.RED));
                             queue.offer(neighbor);
                         }
                     }
@@ -57,13 +42,8 @@ public class TwoDimensionalGraphicCalculator extends AbstractGraphicCalculator {
             }
         }
 
-        toReturn.add(new CircleGraphicData(new Point(Rounder.round(centerOfScreen.getX()), Rounder.round(centerOfScreen.getY())), zoomFactor, Color.BLUE));
-
-        double losX = Math.cos(p.getDirectionRadians()) * 2;
-        double losY = Math.sin(p.getDirectionRadians()) * 2;
-        SerializablePoint3D los = translatePoint(new SerializablePoint3D(losX, losY, 0.0).multiplyByScalar(zoomFactor), centerOfScreen);
-
-        toReturn.add(new LineGraphicData(new Point(Rounder.round(centerOfScreen.getX()), Rounder.round(centerOfScreen.getY())), new Point(Rounder.round(los.getX()), Rounder.round(los.getY())), Color.WHITE));
+        Point player = p.getLocation().toHomogenousCoordinate().toCameraSpace(p).normalize(windowSize.getWidth() / 20, windowSize.getHeight() / 20, 1.0).toScreenCoordinates(windowSize);
+        toReturn.add(new CircleGraphicData(player, 10.0, Color.BLUE));
 
         return toReturn;
     }

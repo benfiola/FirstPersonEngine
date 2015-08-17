@@ -13,7 +13,6 @@ public class ThreeDimensionalRendererPanel extends AbstractRendererPanel {
 
     public ThreeDimensionalRendererPanel() {
         super(new ThreeDimensionalGraphicCalculator());
-        this.zoomFactor = 60.0;
     }
 
     @Override
