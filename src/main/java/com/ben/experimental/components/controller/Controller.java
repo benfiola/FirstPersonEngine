@@ -76,7 +76,7 @@ public class Controller extends AbstractComponent<ControllerEvent> {
     }
 
     public void initialize() {
-        map = createLines();
+        map = createBox();
         player = new Player(new SerializablePoint3D(0.0,0.0,0.0), 0.0);
     }
 
